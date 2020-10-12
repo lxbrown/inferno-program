@@ -345,8 +345,18 @@ module Inferno
 
       def streamed_ndjson_get(url, headers)
         ctx = OpenSSL::SSL::SSLContext.new
-        ctx.verify_mode = OpenSSL::SSL::VERIFY_PEER # set globally to VERIFY_NONE if disable_verify_peer set
+        #ctx.verify_mode = OpenSSL::SSL::VERIFY_PEER # set globally to VERIFY_NONE if disable_verify_peer set
+        ctx.verify_mode = OpenSSL::SSL::VERIFY_NONE
         ctx.set_params unless OpenSSL::SSL::VERIFY_PEER == OpenSSL::SSL::VERIFY_NONE
+
+
+
+        #--hershil, restore 
+              OpenSSL::SSL::VERIFY_PEER.replace 1 if settings.disable_verify_peer
+
+        #--
+
+
         response = HTTP.headers(headers).get(url, ssl_context: ctx)
 
         # We need to log the request, but don't know what will be in the body
@@ -415,6 +425,13 @@ module Inferno
         if line_count > MAX_RECENT_LINE_SIZE
           response_for_log[:body] = "NOTE: RESPONSE TRUNCATED\nINFERNO ONLY DISPLAYS FIRST #{MAX_RECENT_LINE_SIZE} LINES\n\n#{response_for_log[:body]}"
         end
+
+        #hershil unrestore
+        #---
+        OpenSSL::SSL::VERIFY_PEER.replace OpenSSL::SSL::VERIFY_NONE if settings.disable_verify_peer
+        #---
+
+
         LoggedRestClient.record_response(request_for_log, response_for_log)
 
         line_count
